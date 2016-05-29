@@ -52,32 +52,38 @@ let command cmd =
     false
   end else true
 
+let save_commit kind commit_hash =
+  let oc = Printf.kprintf open_out "%s-commit.txt" kind in
+  output_string oc commit_hash;
+  output_string oc "\n";
+  close_out oc
+
+let load_commit kind =
+  let ic = Printf.kprintf open_in "%s-commit.txt" kind in
+  let commit = input_line ic in
+  close_in ic;
+  commit
 
 let for_each_new_commit f =
-  let last_commit = ref "reboot" in
+  save_commit "previous" "reboot";
   while true do
     if
       (not !opam_pull ||
-         command "git checkout master" &&
-         command "git pull ocaml master") &&
-        command last_commit_cmd then begin
+       command "git checkout master" &&
+       command "git pull ocaml master") &&
+      command last_commit_cmd then begin
+        let previous_commit = load_commit "previous" in
+        let current_commit = load_commit "last" in
+        Sys.remove "last-commit.txt";
 
-          let commit =
-            let ic = open_in "last-commit.txt" in
-            let commit = input_line ic in
-            close_in ic;
-            commit
-          in
-          Sys.remove "last-commit.txt";
+        if current_commit <> previous_commit then begin
 
-          if !last_commit <> commit then begin
+          f current_commit;
 
-            f commit;
+          save_commit "previous" current_commit;
+        end
 
-            last_commit := commit;
-          end
-
-        end;
+    end;
     if not !opam_pull then exit 0;
     Unix.sleep 60;
   done
