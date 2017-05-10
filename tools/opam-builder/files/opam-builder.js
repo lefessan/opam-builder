@@ -190,6 +190,11 @@ function add_url_argument(arg, value){
 
 function update_url_from_state( url, s )
 {
+    /* remove leading // */
+    var i = 0;
+    while( url[i] == '/' && i < url.length-1 && url[i+1] == '/'){ i++; }
+    if( i > 0 ){ url = url.substring(i,url.length); }
+    
     url += "?";
     if( s.show_table == 0 ){
 
